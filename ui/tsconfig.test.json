@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "types": ["@testing-library/jest-dom", "vitest/globals"]
+  },
+  "include": ["src"],
+  "exclude": []
+}
