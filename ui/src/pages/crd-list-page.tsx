@@ -4,7 +4,7 @@ import { CustomResourceDefinition } from 'kubernetes-types/apiextensions/v1'
 import { Link } from 'react-router-dom'
 
 import { createSearchFilter } from '@/lib/k8s'
-import { getAge } from '@/lib/utils'
+import { formatDate, getAge } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { ResourceTable } from '@/components/resource-table'
 
@@ -102,6 +102,15 @@ export function CRDListPage() {
         cell: ({ getValue }) => {
           return getAge(getValue() as string)
         },
+      }),
+      columnHelper.display({
+        id: 'createdAt',
+        header: 'Created',
+        cell: ({ row }) => (
+          <span className="text-muted-foreground text-sm">
+            {formatDate(row.original.metadata?.creationTimestamp as string || '')}
+          </span>
+        ),
       }),
     ],
     [columnHelper]
