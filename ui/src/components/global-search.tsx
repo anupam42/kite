@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
 import { globalSearch, SearchResult } from '@/lib/api'
+import { fuzzyScore } from '@/lib/fuzzy'
 import {
   getResourceCatalogEntry,
   getResourceIconComponent,
@@ -198,19 +199,22 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
   }, [config, getIconComponent, t, user])
 
   const sidebarResults = useMemo(() => {
-    const trimmedQuery = query.trim().toLowerCase()
+    const trimmedQuery = query.trim()
     if (!trimmedQuery) {
       return []
     }
 
     return sidebarItems
-      .filter((item) => item.searchText.includes(trimmedQuery))
+      .map((item) => ({ item, score: fuzzyScore(trimmedQuery, item.searchText) }))
+      .filter(({ score }) => score > 0)
       .sort((a, b) => {
-        if (a.isPinned !== b.isPinned) {
-          return a.isPinned ? -1 : 1
+        if (a.item.isPinned !== b.item.isPinned) {
+          return a.item.isPinned ? -1 : 1
         }
-        return a.title.localeCompare(b.title)
+        if (b.score !== a.score) return b.score - a.score
+        return a.item.title.localeCompare(b.item.title)
       })
+      .map(({ item }) => item)
   }, [query, sidebarItems])
 
   const actionItems: ActionSearchItem[] = useMemo(() => {
@@ -256,12 +260,16 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
 
   // Filter theme option based on query
   const actionResults = useMemo(() => {
-    const trimmedQuery = query.trim().toLowerCase()
+    const trimmedQuery = query.trim()
     if (!trimmedQuery) {
       return []
     }
 
-    return actionItems.filter((item) => item.searchText.includes(trimmedQuery))
+    return actionItems
+      .map((item) => ({ item, score: fuzzyScore(trimmedQuery, item.searchText) }))
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(({ item }) => item)
   }, [actionItems, query])
 
   // Use favorites hook
