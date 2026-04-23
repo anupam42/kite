@@ -175,32 +175,25 @@ func getResourceOrder(resourceType string) int {
 	return len(searchResourceOrder) // Default to the end if not found
 }
 
-// sortResults sorts the search results with exact matches first, then by resource type
+// sortResults sorts results by match quality descending, then by resource type.
+// For results without a pre-computed Score (e.g. label-search results), the
+// score is derived on-the-fly from the query so the sort remains deterministic.
 func sortResults(results []common.SearchResult, query string) {
-	var exactMatches, partialMatches []common.SearchResult
-
-	for _, result := range results {
-		if strings.ToLower(result.Name) == query {
-			exactMatches = append(exactMatches, result)
+	scores := make([]int, len(results))
+	for i, r := range results {
+		if r.Score > 0 {
+			scores[i] = r.Score
 		} else {
-			partialMatches = append(partialMatches, result)
+			scores[i] = utils.FuzzyScore(query, r.Name)
 		}
 	}
 
-	// sort by resources
-	sortByResources := func(a, b common.SearchResult) bool {
-		return getResourceOrder(a.ResourceType) < getResourceOrder(b.ResourceType)
-	}
-
-	sort.SliceStable(exactMatches, func(i, j int) bool {
-		return sortByResources(exactMatches[i], exactMatches[j])
+	sort.SliceStable(results, func(i, j int) bool {
+		if scores[i] != scores[j] {
+			return scores[i] > scores[j]
+		}
+		return getResourceOrder(results[i].ResourceType) < getResourceOrder(results[j].ResourceType)
 	})
-	sort.SliceStable(partialMatches, func(i, j int) bool {
-		return sortByResources(partialMatches[i], partialMatches[j])
-	})
-
-	// Combine results
-	copy(results, append(exactMatches, partialMatches...))
 }
 
 func normalizeSearchLimit(limit int) int {

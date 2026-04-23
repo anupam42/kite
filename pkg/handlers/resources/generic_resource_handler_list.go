@@ -12,6 +12,7 @@ import (
 	"github.com/zxh326/kite/pkg/common"
 	"github.com/zxh326/kite/pkg/model"
 	"github.com/zxh326/kite/pkg/rbac"
+	"github.com/zxh326/kite/pkg/utils"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -170,8 +171,12 @@ func (h *GenericResourceHandler[T, V]) Search(c *gin.Context, q string, limit in
 			klog.Errorf("item is not a client.Object: %v", item)
 			continue
 		}
-		if !isLabelSearch && !strings.Contains(strings.ToLower(obj.GetName()), strings.ToLower(q)) {
-			continue
+		var score int
+		if !isLabelSearch {
+			score = utils.FuzzyScore(q, obj.GetName())
+			if score == 0 {
+				continue
+			}
 		}
 		if h.Name() == string(common.Namespaces) && !rbac.CanAccessNamespace(user, cs.Name, obj.GetName()) {
 			continue
@@ -185,6 +190,7 @@ func (h *GenericResourceHandler[T, V]) Search(c *gin.Context, q string, limit in
 			Namespace:    obj.GetNamespace(),
 			ResourceType: h.name,
 			CreatedAt:    obj.GetCreationTimestamp().String(),
+			Score:        score,
 		}
 		results = append(results, result)
 		if limit > 0 && int64(len(results)) >= limit {
