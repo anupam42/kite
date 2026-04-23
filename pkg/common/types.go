@@ -11,7 +11,6 @@ type SearchResult struct {
 	Namespace    string `json:"namespace,omitempty"`
 	ResourceType string `json:"resourceType"`
 	CreatedAt    string `json:"createdAt"`
-	Score        int    `json:"-"`
 }
 
 type RelatedResource struct {
